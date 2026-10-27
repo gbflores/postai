@@ -9,35 +9,51 @@
 </head>
 <body>
 <main>
-  <header>
-    <h1>📣 Postaí</h1>
-    <p class="muted">Escreva uma vez e publique em todas as redes.</p>
+  <header class="top">
+    <div>
+      <h1>📣 Postaí</h1>
+      <p class="muted">Escreva uma vez e publique em todas as redes.</p>
+    </div>
   </header>
 
-  <form id="composer" class="card">
-    <div class="networks" id="networks" role="group" aria-label="Redes"></div>
+  <form id="composer" class="card composer">
+    <fieldset class="networks">
+      <legend>Publicar em</legend>
+      <div id="networks" class="chips"></div>
+    </fieldset>
 
-    <label class="sr-only" for="text">Texto do post</label>
-    <textarea id="text" name="text" rows="7" placeholder="O que você quer publicar?"></textarea>
+    <div id="dropzone" class="editor">
+      <label class="sr-only" for="text">Texto do post</label>
+      <textarea id="text" rows="6" placeholder="O que você quer publicar?"></textarea>
 
-    <div class="row">
-      <label class="file">
-        <input type="file" id="image" accept="image/jpeg,image/png,image/webp">
-        <span>🖼️ Adicionar imagem</span>
-      </label>
-      <label class="toggle"><input type="checkbox" id="customize"> Texto diferente por rede</label>
-    </div>
+      <div id="preview" class="preview" hidden>
+        <img alt="Imagem anexada">
+        <button type="button" id="removeImage" class="remove" aria-label="Remover imagem">×</button>
+      </div>
 
-    <div id="preview" class="preview" hidden>
-      <img alt="Imagem anexada">
-      <button type="button" id="removeImage" class="link">remover</button>
+      <div class="toolbar">
+        <label class="tool" title="Anexar imagem (ou cole com Ctrl+V / arraste para cá)">
+          <input type="file" id="image" accept="image/jpeg,image/png,image/webp" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 2v8.6l3.3-3.3a1 1 0 0 1 1.4 0l2.3 2.3 4.3-4.3a1 1 0 0 1 1.4 0L19 11.6V7H5Zm3.5 1a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg>
+          <span>Imagem</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="customize">
+          <span class="track" aria-hidden="true"></span>
+          Texto por rede
+        </label>
+      </div>
     </div>
 
     <div id="overrides" class="overrides" hidden></div>
-    <ul id="warnings" class="warnings"></ul>
+    <ul id="warnings" class="warnings" aria-live="polite"></ul>
 
     <div class="actions">
-      <label class="toggle"><input type="checkbox" id="dryRun"> Simular (preenche tudo, não publica)</label>
+      <label class="switch">
+        <input type="checkbox" id="dryRun">
+        <span class="track" aria-hidden="true"></span>
+        Simular <span class="muted small">(preenche, não publica)</span>
+      </label>
       <button type="submit" id="submit" class="primary">Publicar</button>
     </div>
   </form>

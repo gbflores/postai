@@ -3,7 +3,7 @@ import { NETWORK_IDS } from './core/config.ts';
 import { networks } from './networks/index.ts';
 
 // Abre cada rede e verifica se a sessão ainda está ativa (sem formulário de login na tela).
-// Usa o mesmo modo da publicação: o X recusa conexões de navegador invisível (headless).
+// Usa o mesmo modo do navegador da publicação (config.json > headless).
 const context = await openBrowser();
 let missing = 0;
 for (const id of NETWORK_IDS) {

@@ -7,7 +7,7 @@ export type NetworkId = (typeof NETWORK_IDS)[number];
 export interface Config {
   /** Porta da interface web. Ela só escuta em 127.0.0.1. */
   port: number;
-  /** false abre a janela do navegador durante a publicação (mais fácil de acompanhar e depurar). */
+  /** true publica em segundo plano, sem abrir janela. false mostra o navegador (útil para depurar). */
   headless: boolean;
   /** "chrome" usa o Google Chrome instalado; "chromium" usa o navegador que vem com o Playwright. */
   browser: 'chrome' | 'msedge' | 'chromium';
@@ -27,7 +27,7 @@ export interface Config {
 
 const defaults: Config = {
   port: 4545,
-  headless: false,
+  headless: true,
   browser: 'chrome',
   dataDir: './data',
   handles: {},

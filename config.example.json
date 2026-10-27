@@ -1,8 +1,12 @@
 {
   "port": 4545,
-  "headless": false,
+  "headless": true,
   "browser": "chrome",
-  "defaultNetworks": ["x", "threads", "linkedin"],
+  "defaultNetworks": [
+    "x",
+    "threads",
+    "linkedin"
+  ],
   "handles": {
     "x": "seu_usuario_no_x",
     "threads": "seu_usuario_no_threads",

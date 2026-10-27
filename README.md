@@ -59,7 +59,7 @@ O `npm run setup` já cria o arquivo. Preencha pelo menos os `handles`:
 | --- | --- |
 | `handles` | Seu @ em cada rede, **sem o @**. É com ele que o Postaí acha o link do post quando a rede não o devolve na hora. Recomendado para X, Threads e Instagram. |
 | `defaultNetworks` | Redes que já vêm marcadas na interface. |
-| `headless` | `false` mostra a janela do navegador enquanto publica, o que facilita acompanhar. `true` roda escondido. |
+| `headless` | `true` (padrão) publica em segundo plano, sem abrir janela. `false` mostra o navegador, útil para ver onde algo travou. |
 | `browser` | `chrome` (padrão), `msedge` ou `chromium`. |
 | `limits` | Limite de caracteres por rede. Se você assina o X Premium, aumente o do `x`. |
 | `card` | Cores e rodapé da imagem gerada para o Instagram quando o post é só texto. |
@@ -102,7 +102,7 @@ Antes do primeiro post de verdade, rode uma **simulação**. Ela preenche tudo e
 npm run post -- "Testando o Postaí" --to x,threads,linkedin,facebook,instagram --dry-run
 ```
 
-Com `"headless": false`, você vê cada rede sendo preenchida. Se todas aparecerem com 🧪, está tudo pronto.
+Para ver cada rede sendo preenchida, coloque `"headless": false` antes. Se todas aparecerem com 🧪, está tudo pronto.
 
 ## Como usar
 
@@ -174,7 +174,7 @@ As redes mudam o layout de vez em quando. Quando uma etapa falha:
 
 1. O envio continua nas outras redes. A que falhou aparece com ❌ e o motivo.
 2. Um print da tela no momento do erro fica em `data/screenshots/`.
-3. Rode com `"headless": false` e `--dry-run` para ver onde parou.
+3. Coloque `"headless": false` no `config.json` e rode com `--dry-run` para ver onde parou.
 4. Ajuste o seletor em `src/networks/<rede>.ts`. Cada arquivo é curto e comentado. Os textos dos botões ficam em
    listas com as variações de idioma (`POST_BUTTON`, `NEXT_BUTTON` etc.).
 
