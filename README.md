@@ -40,19 +40,20 @@ Você escreve  ──►  Postaí abre o navegador  ──►  publica em cada r
 ```bash
 git clone https://github.com/gbflores/postai.git
 cd postai
-npm install
+npm run setup
 ```
 
-Se não quiser usar o Chrome instalado, baixe o navegador do Playwright com `npx playwright install chromium` e
-coloque `"browser": "chromium"` no `config.json`.
+O `setup` instala as dependências, cria o `config.json` a partir do exemplo, confere se o navegador abre e mostra os
+próximos passos. Pode rodar de novo quando quiser.
+
+Se não quiser usar o Chrome instalado, coloque `"browser": "chromium"` no `config.json` e rode `npm run setup` de
+novo: ele baixa o navegador do Playwright.
 
 ## Configuração
 
-### 1. Crie o `config.json`
+### 1. Ajuste o `config.json`
 
-```bash
-cp config.example.json config.json
-```
+O `npm run setup` já cria o arquivo. Preencha pelo menos os `handles`:
 
 | Campo | Para que serve |
 | --- | --- |
@@ -139,6 +140,22 @@ npm run post -- "Teste" --to x --dry-run
 ```
 
 O comando termina com código `1` se alguma rede falhar, o que ajuda em scripts e atalhos.
+
+## Com o Claude Code
+
+O repositório traz um `CLAUDE.md` e a skill **`/postai`** (`.claude/skills/postai/`). Abrindo o Claude Code na pasta
+do projeto, basta pedir em linguagem natural:
+
+- *"coloca o Postaí para rodar"*: roda o setup, confere as sessões, sobe a interface e explica como usar.
+  Se alguma rede precisar de login, ele pede para você rodar `! npm run login -- <rede>`.
+- *"posta no X e no LinkedIn: lançamos a versão 2 do app"*: monta o post, confere os limites, **pede sua
+  confirmação**, publica e devolve o link de cada rede.
+- *"simula esse post em todas as redes"* ou *"o Instagram parou de publicar, vê o que houve"*.
+
+O Claude nunca digita suas senhas: o login nas redes é sempre seu.
+
+Para usar de **qualquer pasta**, copie a skill para o seu usuário apontando para onde você clonou o projeto (veja o
+exemplo em `.claude/skills/postai/SKILL.md`), ou crie uma skill curta em `~/.claude/skills/` que leia essa.
 
 ## O que esperar de cada rede
 

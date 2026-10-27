@@ -10,6 +10,7 @@
     "node": ">=20.11"
   },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "start": "tsx src/server.ts",
     "login": "tsx src/login.ts",
     "check": "tsx src/check.ts",

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { NETWORK_IDS, config, type NetworkId } from './core/config.ts';
 import { publish, validate } from './core/publisher.ts';
@@ -10,9 +10,12 @@ const HELP = `Uso:
 Opções:
   --to x,threads,linkedin,facebook,instagram   redes (padrão: defaultNetworks do config.json)
   --image caminho/da/imagem.jpg                anexa uma imagem
+  --file caminho/do/texto.txt                  lê o texto de um arquivo (evita problemas com aspas)
   --dry-run                                    preenche tudo sem publicar
 `;
 
+// npm run muda a pasta atual para a do projeto; caminhos relativos valem a partir de onde você chamou.
+const fromCaller = (path: string) => resolve(process.env.INIT_CWD ?? process.cwd(), path);
 const args = process.argv.slice(2);
 let text = '';
 let image: string | undefined;
@@ -24,7 +27,14 @@ for (let i = 0; i < args.length; i++) {
   if (arg === '--to') {
     to = args[++i].split(',').map((s) => s.trim()) as NetworkId[];
   } else if (arg === '--image') {
-    image = resolve(args[++i]);
+    image = fromCaller(args[++i]);
+  } else if (arg === '--file') {
+    const file = fromCaller(args[++i]);
+    if (!existsSync(file)) {
+      console.error(`Arquivo de texto não encontrado: ${file}`);
+      process.exit(1);
+    }
+    text = readFileSync(file, 'utf8').replace(/\s+$/, '');
   } else if (arg === '--dry-run') {
     dryRun = true;
   } else if (arg === '--help' || arg === '-h') {
