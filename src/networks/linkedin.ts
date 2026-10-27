@@ -2,7 +2,8 @@ import { NEXT_BUTTON, matchInResponse, typeText, waitEnabled, words } from './he
 import type { Network } from './types.ts';
 
 const MEDIA_BUTTON = words('Mídia', 'Media', 'Adicionar mídia', 'Add media', 'Multimedia', 'Médias', 'Medien');
-const PUBLISH_BUTTON = words('Publicar', 'Post', 'Publier', 'Posten', 'Veröffentlichen', 'Pubblica');
+const START_POST = /^(Começar publicação|Start a post|Comenzar publicación|Commencer un post|Beitrag beginnen|Avvia un post)$/i;
+const PUBLISH_BUTTON =words('Publicar', 'Post', 'Publier', 'Posten', 'Veröffentlichen', 'Pubblica');
 
 export const linkedin: Network = {
   id: 'linkedin',
@@ -14,7 +15,12 @@ export const linkedin: Network = {
     const box = page
       .locator('[componentkey="ShareBox_textEditor"], .ql-editor[contenteditable="true"], .share-box [role="textbox"]')
       .first();
-    await box.waitFor();
+    // Nem sempre o ?shareActive abre o compositor; nesse caso, clica em "Começar publicação".
+    const opened = await box.waitFor({ timeout: 8_000 }).then(() => true, () => false);
+    if (!opened) {
+      await page.getByRole('button', { name: START_POST }).or(page.getByText(START_POST)).first().click();
+      await box.waitFor();
+    }
     await typeText(page, box, text);
 
     if (image) {
@@ -22,9 +28,12 @@ export const linkedin: Network = {
       const chooser = page.waitForEvent('filechooser');
       await page.getByRole('button', { name: MEDIA_BUTTON }).first().click();
       await (await chooser).setFiles(image);
-      // Editor de imagem: "Avançar" volta para o compositor.
+      // Em algumas versões abre um editor de imagem com "Avançar"; em outras a imagem já entra no compositor.
+      // O "Avançar" é procurado só dentro do diálogo (o feed tem botões "Próximo" de carrossel).
+      await page.waitForTimeout(2_000);
       for (let i = 0; i < 2; i++) {
-        const next = page.getByRole('button', { name: NEXT_BUTTON }).last();
+        if (await page.getByRole('button', { name: PUBLISH_BUTTON }).last().isVisible().catch(() => false)) break;
+        const next = page.locator('[role="dialog"]').getByRole('button', { name: NEXT_BUTTON }).last();
         if (!(await next.isVisible({ timeout: 8_000 }).catch(() => false))) break;
         await next.click();
       }
