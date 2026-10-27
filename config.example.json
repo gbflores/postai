@@ -1,0 +1,20 @@
+{
+  "port": 4545,
+  "headless": false,
+  "browser": "chrome",
+  "defaultNetworks": ["x", "threads", "linkedin"],
+  "handles": {
+    "x": "seu_usuario_no_x",
+    "threads": "seu_usuario_no_threads",
+    "instagram": "seu_usuario_no_instagram"
+  },
+  "limits": {
+    "x": 280
+  },
+  "card": {
+    "background": "#0f1419",
+    "color": "#f7f9f9",
+    "accent": "#1d9bf0",
+    "footer": "@seu_usuario"
+  }
+}

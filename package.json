@@ -1,0 +1,29 @@
+{
+  "name": "postai",
+  "version": "0.1.0",
+  "description": "Escreva uma vez e publique no X, Threads, LinkedIn, Facebook e Instagram de uma vez, pelo navegador, de graça.",
+  "license": "MIT",
+  "author": "Guilherme Flores",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "login": "tsx src/login.ts",
+    "check": "tsx src/check.ts",
+    "post": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.14",
+    "playwright": "^1.64.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Postaí</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📣</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>📣 Postaí</h1>
+    <p class="muted">Escreva uma vez e publique em todas as redes.</p>
+  </header>
+
+  <form id="composer" class="card">
+    <div class="networks" id="networks" role="group" aria-label="Redes"></div>
+
+    <label class="sr-only" for="text">Texto do post</label>
+    <textarea id="text" name="text" rows="7" placeholder="O que você quer publicar?"></textarea>
+
+    <div class="row">
+      <label class="file">
+        <input type="file" id="image" accept="image/jpeg,image/png,image/webp">
+        <span>🖼️ Adicionar imagem</span>
+      </label>
+      <label class="toggle"><input type="checkbox" id="customize"> Texto diferente por rede</label>
+    </div>
+
+    <div id="preview" class="preview" hidden>
+      <img alt="Imagem anexada">
+      <button type="button" id="removeImage" class="link">remover</button>
+    </div>
+
+    <div id="overrides" class="overrides" hidden></div>
+    <ul id="warnings" class="warnings"></ul>
+
+    <div class="actions">
+      <label class="toggle"><input type="checkbox" id="dryRun"> Simular (preenche tudo, não publica)</label>
+      <button type="submit" id="submit" class="primary">Publicar</button>
+    </div>
+  </form>
+
+  <section id="progress" class="card" hidden>
+    <h2>Envio</h2>
+    <ul id="results" class="results"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Histórico</h2>
+    <ul id="history" class="history"><li class="muted">Carregando…</li></ul>
+  </section>
+</main>
+<script src="app.js" type="module"></script>
+</body>
+</html>
