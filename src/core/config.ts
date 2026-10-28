@@ -23,6 +23,12 @@ export interface Config {
   timeoutMs: number;
   /** Visual do card gerado quando o Instagram recebe só texto. */
   card: { background: string; color: string; accent: string; footer: string };
+  /**
+   * Bloco "Criar post": a IA reescreve sua ideia para cada rede.
+   * provider: "gemini" (chave GEMINI_API_KEY no .env) ou "claude" (Claude Code instalado e logado).
+   * knowledge: arquivos (.md, .txt, .json) com quem você é e o que sabe, usados como contexto.
+   */
+  writer: { provider: 'gemini' | 'claude'; geminiModel: string; claudeModel: string; claudeBin: string; knowledge: string[] };
 }
 
 const defaults: Config = {
@@ -35,9 +41,13 @@ const defaults: Config = {
   limits: { x: 280, threads: 500, linkedin: 3000, facebook: 63206, instagram: 2200 },
   timeoutMs: 30_000,
   card: { background: '#0f1419', color: '#f7f9f9', accent: '#1d9bf0', footer: '' },
+  writer: { provider: 'gemini', geminiModel: 'gemini-flash-latest', claudeModel: 'sonnet', claudeBin: 'claude', knowledge: ['sobre-mim.md'] },
 };
 
 export const ROOT = resolve(import.meta.dirname, '..', '..');
+
+// Chaves (GEMINI_API_KEY) ficam no .env, fora do git.
+if (existsSync(resolve(ROOT, '.env'))) process.loadEnvFile(resolve(ROOT, '.env'));
 
 function loadConfig(): Config {
   const file = resolve(ROOT, 'config.json');
@@ -48,6 +58,7 @@ function loadConfig(): Config {
     handles: { ...defaults.handles, ...user.handles },
     limits: { ...defaults.limits, ...user.limits },
     card: { ...defaults.card, ...user.card },
+    writer: { ...defaults.writer, ...user.writer },
   };
   cfg.dataDir = resolve(ROOT, cfg.dataDir);
   return cfg;

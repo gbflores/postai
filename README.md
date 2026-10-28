@@ -4,7 +4,8 @@ Escreva uma vez e publique no **X, Threads, LinkedIn, Facebook e Instagram** de 
 recebe a confirmação de cada rede com o **link do post**.
 
 - **De graça:** não usa as APIs oficiais (a do X é paga). O Postaí controla um navegador e faz o que você faria à mão.
-- **Sem IA e sem tokens:** são roteiros fixos com [Playwright](https://playwright.dev), executados no seu computador.
+- **Publicar não usa IA:** são roteiros fixos com [Playwright](https://playwright.dev), executados no seu computador.
+- **Criar post com IA (opcional):** escreva uma ideia curta e o Gemini ou o Claude formata para X, Threads ou LinkedIn.
 - **Sem servidor:** roda só na sua máquina, e as sessões das redes ficam num perfil de navegador separado do seu.
 - **Funciona com só texto:** o Instagram não aceita post sem imagem, então o Postaí gera um card com o texto.
 
@@ -119,7 +120,30 @@ Abra **http://localhost:4545**.
 3. Se quiser um texto diferente numa rede, ative **Texto diferente por rede**.
 4. Clique em **Publicar**, ou marque **Simular** para testar sem publicar.
 5. Acompanhe o envio. Cada rede aparece com ✅ e o link do post, ou ❌ com o erro e o caminho do print da tela.
-6. O **Histórico** guarda os últimos envios com os links.
+6. O **Histórico** guarda os últimos envios com os links. O campo de texto é limpo assim que o envio começa,
+   para um segundo clique não publicar duplicado.
+
+### Criar post com IA
+
+O bloco **Criar post**, à direita, transforma uma ideia curta num post pronto:
+
+- **X** e **Threads:** texto curto, dentro do limite de caracteres, com hashtags.
+- **LinkedIn:** expande como um artigo curto de blog, com abertura forte, parágrafos curtos, palavras-chave e hashtags.
+
+Escolha a rede e o modelo, escreva a ideia e clique em **Gerar** (ou `Ctrl+Enter`). Revise o texto, depois
+**Copiar** ou **Usar no post**, que leva o texto para o campo principal. A IA nunca publica sozinha.
+
+Configure em `config.json`:
+
+```json
+"writer": { "provider": "gemini", "knowledge": ["sobre-mim.md"] }
+```
+
+- `provider`: `gemini` (precisa de `GEMINI_API_KEY` no `.env`, veja `.env.example`) ou `claude` (usa o Claude Code
+  instalado e logado). Dá para trocar na hora pela interface.
+- `knowledge`: arquivos `.md`, `.txt` ou `.json` sobre você (experiência, stack, projetos). A IA usa como contexto
+  e não inventa nada além disso. E-mail e telefone de arquivos JSON são removidos antes do envio. `sobre-mim.md`
+  e `.env` ficam fora do git.
 
 A interface só abre no seu computador (`127.0.0.1`) e não tem login. Não a exponha na internet.
 
@@ -199,6 +223,7 @@ src/
     publisher.ts       publica rede por rede, guarda prints de erro e histórico
     browser.ts         navegador com perfil persistente (data/browser-profile)
     card.ts            imagem com o texto para o Instagram
+    writer.ts          "Criar post": Gemini ou Claude formatam a ideia por rede
     config.ts          config.json + padrões
   networks/
     x.ts threads.ts linkedin.ts facebook.ts instagram.ts

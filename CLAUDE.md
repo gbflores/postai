@@ -1,7 +1,8 @@
 # Postaí
 
 Publica o mesmo post no X, Threads, LinkedIn, Facebook e Instagram controlando um navegador com Playwright.
-Roda só na máquina do usuário; não usa APIs pagas nem IA. Detalhes para humanos estão no `README.md`.
+Roda só na máquina do usuário; publicar não usa APIs pagas nem IA. Só o bloco "Criar post" usa IA
+(Gemini com `GEMINI_API_KEY` no `.env`, ou `claude -p`), e ele nunca publica: o usuário revisa e copia. Detalhes para humanos estão no `README.md`.
 
 Para rodar, publicar ou consertar, siga a skill `/postai` (`.claude/skills/postai/SKILL.md`).
 
@@ -22,7 +23,7 @@ Para rodar, publicar ou consertar, siga a skill `/postai` (`.claude/skills/posta
   redes e a imagem, e só siga com a confirmação do usuário (ou se ele já pediu explicitamente para publicar aquele
   texto naquelas redes).
 - **Nunca digite senhas, códigos de verificação ou resolva captchas.** Login é sempre com o usuário (`npm run login`).
-- Não versionar `config.json` nem `data/` (sessões do navegador, uploads, prints, histórico).
+- Não versionar `config.json`, `.env`, `sobre-mim.md` nem `data/` (sessões do navegador, uploads, prints, histórico).
 - Mantenha os seletores multilíngues: cada texto de botão fica em listas como `POST_BUTTON` em
   `src/networks/helpers.ts` ou no arquivo da rede.
 
@@ -30,6 +31,7 @@ Para rodar, publicar ou consertar, siga a skill `/postai` (`.claude/skills/posta
 
 - `src/core/publisher.ts`: `validate()` e `publish()`, uma rede por vez, com print em `data/screenshots/` quando falha.
 - `src/networks/<rede>.ts`: roteiro de cada rede (`publish()` devolve `{ url?, note? }`).
+- `src/core/writer.ts`: "Criar post" (`writePost()`); regras de estilo por rede em `STYLE`, contexto em `config.writer.knowledge`.
 - `src/core/card.ts`: gera a imagem com o texto quando o Instagram recebe só texto.
 - `src/server.ts` + `public/`: interface (Hono, SSE para status ao vivo, HTML/JS puros).
 - `config.json`: `handles` (@ do usuário por rede, usado para achar o link), `headless`, `browser`, `limits`, `card`.

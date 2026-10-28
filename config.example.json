@@ -20,5 +20,11 @@
     "color": "#f7f9f9",
     "accent": "#1d9bf0",
     "footer": "@seu_usuario"
+  },
+  "writer": {
+    "provider": "gemini",
+    "knowledge": [
+      "sobre-mim.md"
+    ]
   }
 }

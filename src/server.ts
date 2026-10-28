@@ -8,6 +8,7 @@ import { NETWORK_IDS, ROOT, config, paths, type NetworkId } from './core/config.
 import { readHistory } from './core/history.ts';
 import { publish, validate, type PostRequest, type PublishEvent } from './core/publisher.ts';
 import { networks } from './networks/index.ts';
+import { WRITER_NETWORKS, providers, writePost, type Provider, type WriterNetwork } from './core/writer.ts';
 
 interface Job {
   events: PublishEvent[];
@@ -32,6 +33,20 @@ app.get('/api/networks', (c) =>
     })),
   }),
 );
+
+app.get('/api/writer', (c) => c.json({ networks: WRITER_NETWORKS, providers: providers(), provider: config.writer.provider }));
+
+app.post('/api/write', async (c) => {
+  const { idea, network, provider } = await c.req.json<{ idea?: string; network?: WriterNetwork; provider?: Provider }>();
+  if (!idea?.trim()) return c.json({ error: 'Escreva a ideia do post.' }, 400);
+  if (!network || !WRITER_NETWORKS.includes(network)) return c.json({ error: 'Escolha X, Threads ou LinkedIn.' }, 400);
+  try {
+    const text = await writePost(idea, network, provider === 'claude' || provider === 'gemini' ? provider : undefined);
+    return c.json({ text });
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 502);
+  }
+});
 
 app.get('/api/history', (c) => c.json(readHistory().slice(0, 50)));
 

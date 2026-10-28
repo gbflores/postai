@@ -16,6 +16,7 @@
     </div>
   </header>
 
+  <div class="columns">
   <form id="composer" class="card composer">
     <fieldset class="networks">
       <legend>Publicar em</legend>
@@ -57,6 +58,33 @@
       <button type="submit" id="submit" class="primary">Publicar</button>
     </div>
   </form>
+
+  <section id="writer" class="card writer">
+    <h2>Criar post <span class="muted small">com IA</span></h2>
+    <div class="writer-row">
+      <div class="segmented" id="writerNetworks" role="radiogroup" aria-label="Formatar para"></div>
+      <select id="writerProvider" aria-label="Modelo"></select>
+    </div>
+    <label class="sr-only" for="idea">Ideia</label>
+    <textarea id="idea" rows="4" placeholder="Escreva a ideia, mesmo curta. Ex.: migrei uma API Laravel para filas e o tempo de resposta caiu"></textarea>
+    <div class="writer-actions">
+      <span id="writerHint" class="muted small"></span>
+      <button type="button" id="generate" class="primary">Gerar</button>
+    </div>
+    <p id="writerError" class="writer-error" hidden></p>
+    <div id="draftBox" hidden>
+      <label class="sr-only" for="draft">Texto gerado</label>
+      <textarea id="draft" rows="10"></textarea>
+      <div class="writer-actions">
+        <span id="draftCount" class="muted small"></span>
+        <div class="buttons">
+          <button type="button" id="copyDraft" class="ghost">Copiar</button>
+          <button type="button" id="useDraft" class="ghost">Usar no post</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
 
   <section id="progress" class="card" hidden>
     <h2>Envio</h2>

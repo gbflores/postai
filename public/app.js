@@ -154,6 +154,13 @@ async function submit(event) {
     return;
   }
 
+  // Aceito: limpa já, para um segundo clique não publicar de novo. O texto fica no histórico.
+  if (!$('#dryRun').checked) {
+    $('#text').value = '';
+    setImage(null);
+    renderOverrides();
+  }
+
   $('#progress').hidden = false;
   $('#results').replaceChildren(...[...state.selected].map(resultRow));
   $('#progress').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -168,12 +175,6 @@ async function submit(event) {
     if (ev.type === 'finish') {
       events.close();
       state.busy = false;
-      const failed = ev.record.results.some((r) => r.status === 'error');
-      if (!failed && !ev.record.dryRun) {
-        $('#text').value = '';
-        setImage(null);
-        renderOverrides();
-      }
       update();
       loadHistory();
     }
@@ -232,6 +233,90 @@ function setupImageInputs() {
   });
 }
 
+const PROVIDER_LABEL = { gemini: 'Gemini', claude: 'Claude' };
+const writer = { network: 'x', busy: false };
+
+function draftCount() {
+  const limit = state.networks.find((n) => n.id === writer.network)?.limit ?? Infinity;
+  const length = $('#draft').value.length;
+  $('#draftCount').textContent = `${length}/${limit} caracteres`;
+  $('#draftCount').classList.toggle('count-over', length > limit);
+}
+
+function renderWriterNetworks() {
+  const hints = {
+    x: 'Curto, direto, com hashtags, no limite do X.',
+    threads: 'Tom de conversa, com hashtags.',
+    linkedin: 'Expande como um artigo curto: contexto, palavras-chave e hashtags.',
+  };
+  $('#writerHint').textContent = hints[writer.network];
+  for (const button of $('#writerNetworks').children) button.setAttribute('aria-checked', String(button.dataset.net === writer.network));
+}
+
+async function generate() {
+  const idea = $('#idea').value.trim();
+  if (!idea || writer.busy) return;
+  writer.busy = true;
+  const button = $('#generate');
+  button.disabled = true;
+  button.textContent = 'Gerando…';
+  $('#writerError').hidden = true;
+  try {
+    const response = await fetch('/api/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea, network: writer.network, provider: $('#writerProvider').value }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    $('#draft').value = data.text;
+    $('#draftBox').hidden = false;
+    draftCount();
+  } catch (error) {
+    $('#writerError').textContent = error.message || 'Não consegui gerar o texto.';
+    $('#writerError').hidden = false;
+  } finally {
+    writer.busy = false;
+    button.disabled = false;
+    button.textContent = 'Gerar';
+  }
+}
+
+async function setupWriter() {
+  const data = await fetch('/api/writer').then((r) => r.json());
+  $('#writerNetworks').replaceChildren(
+    ...data.networks.map((id) => {
+      const button = el('button', { type: 'button', textContent: labelOf(id), role: 'radio', dataset: { net: id } });
+      button.addEventListener('click', () => {
+        writer.network = id;
+        renderWriterNetworks();
+        if (!$('#draftBox').hidden) draftCount();
+      });
+      return button;
+    }),
+  );
+  $('#writerProvider').replaceChildren(
+    ...data.providers.map((id) => el('option', { value: id, textContent: PROVIDER_LABEL[id], selected: id === data.provider })),
+  );
+  renderWriterNetworks();
+  $('#generate').addEventListener('click', generate);
+  $('#idea').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate();
+  });
+  $('#draft').addEventListener('input', draftCount);
+  $('#copyDraft').addEventListener('click', async () => {
+    await navigator.clipboard.writeText($('#draft').value);
+    $('#copyDraft').textContent = 'Copiado ✓';
+    setTimeout(() => ($('#copyDraft').textContent = 'Copiar'), 1500);
+  });
+  $('#useDraft').addEventListener('click', () => {
+    $('#text').value = $('#draft').value;
+    renderOverrides();
+    update();
+    $('#text').focus();
+  });
+}
+
 async function init() {
   const data = await fetch('/api/networks').then((r) => r.json());
   state.networks = data.networks;
@@ -247,6 +332,7 @@ async function init() {
 
   update();
   loadHistory();
+  setupWriter();
 }
 
 init();
