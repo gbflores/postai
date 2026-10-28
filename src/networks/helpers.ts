@@ -12,7 +12,7 @@ export const NEXT_BUTTON = words('Next', 'Avançar', 'Próximo', 'Siguiente', 'S
 /** Digita respeitando quebras de linha, funcionando em textarea e em editores ricos (Lexical, ProseMirror). */
 export async function typeText(page: Page, box: Locator, text: string): Promise<void> {
   await box.click();
-  const lines = text.split('\n');
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
   for (let i = 0; i < lines.length; i++) {
     if (lines[i]) await page.keyboard.insertText(lines[i]);
     if (i < lines.length - 1) await page.keyboard.press('Shift+Enter');

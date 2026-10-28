@@ -53,10 +53,13 @@ app.get('/api/history', (c) => c.json(readHistory().slice(0, 50)));
 app.post('/api/posts', async (c) => {
   const body = await c.req.parseBody({ all: true });
   const list = ([] as unknown[]).concat(body.networks ?? []).map(String);
+  // O navegador manda quebras de linha como \r\n; as redes esperam \n.
+  const lf = (t: string) => t.replace(/\r\n?/g, '\n');
+  const overrides = body.overrides ? (JSON.parse(String(body.overrides)) as Record<string, string>) : undefined;
   const request: PostRequest = {
-    text: String(body.text ?? ''),
+    text: lf(String(body.text ?? '')),
     networks: list.filter((id): id is NetworkId => (NETWORK_IDS as readonly string[]).includes(id)),
-    overrides: body.overrides ? JSON.parse(String(body.overrides)) : undefined,
+    overrides: overrides && Object.fromEntries(Object.entries(overrides).map(([k, v]) => [k, lf(String(v))])),
     dryRun: body.dryRun === 'true',
   };
 

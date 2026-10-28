@@ -15,6 +15,12 @@ export const x: Network = {
 
     if ((await box.evaluate((el) => el.tagName)) === 'TEXTAREA') await box.fill(text);
     else await typeText(page, box, text);
+    // Texto terminando em #hashtag ou @menção deixa aberta a lista de sugestões, uma camada invisível
+    // por cima do botão Postar. Um espaço no fim fecha a lista; o X descarta o espaço ao publicar.
+    if (/[#@][^\s#@]+$/.test(text.trim())) {
+      await page.keyboard.insertText(' ');
+      await page.waitForTimeout(500);
+    }
 
     if (image) {
       log('enviando imagem');
@@ -28,7 +34,11 @@ export const x: Network = {
     const created = page
       .waitForResponse((r) => r.request().method() === 'POST' && /create_?(tweet|post)/i.test(r.url()), { timeout: 30_000 })
       .catch(() => null);
-    await button.click();
+    // Se ainda houver algo por cima do botão, o clique do Playwright nem chega a acontecer; aí dispara o clique direto nele.
+    await button.click({ timeout: 10_000 }).catch(async () => {
+      log('algo cobria o botão Postar; clicando direto nele');
+      await button.dispatchEvent('click');
+    });
     await box.waitFor({ state: 'hidden', timeout: 60_000 });
 
     const id = await matchInResponse(await created, /"rest_id"\s*:\s*"(\d+)"/);
