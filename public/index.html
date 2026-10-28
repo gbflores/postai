@@ -55,7 +55,7 @@
         <span class="track" aria-hidden="true"></span>
         Simular <span class="muted small">(preenche, não publica)</span>
       </label>
-      <button type="submit" id="submit" class="primary">Publicar</button>
+      <button type="submit" id="submit" class="primary" title="Ctrl+Enter">Publicar</button>
     </div>
   </form>
 
@@ -73,14 +73,10 @@
     </div>
     <p id="writerError" class="writer-error" hidden></p>
     <div id="draftBox" hidden>
-      <label class="sr-only" for="draft">Texto gerado</label>
-      <textarea id="draft" rows="10"></textarea>
+      <div id="drafts" class="drafts"></div>
       <div class="writer-actions">
-        <span id="draftCount" class="muted small"></span>
-        <div class="buttons">
-          <button type="button" id="copyDraft" class="ghost">Copiar</button>
-          <button type="button" id="useDraft" class="ghost">Usar no post</button>
-        </div>
+        <span class="muted small">Revise antes de publicar.</span>
+        <button type="button" id="useDraft" class="ghost">Usar no post</button>
       </div>
     </div>
   </section>

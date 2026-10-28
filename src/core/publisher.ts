@@ -31,6 +31,8 @@ export interface JobRecord {
   createdAt: string;
   text: string;
   image?: string;
+  /** Texto diferente por rede, para repostar ou tentar de novo com o mesmo conteúdo. */
+  overrides?: Partial<Record<NetworkId, string>>;
   dryRun: boolean;
   results: NetworkResult[];
 }
@@ -62,6 +64,7 @@ export async function publish(request: PostRequest, emit: (event: PublishEvent) 
     createdAt: new Date().toISOString(),
     text: request.text,
     image: request.image,
+    overrides: request.overrides,
     dryRun: !!request.dryRun,
     results: [],
   };

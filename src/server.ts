@@ -1,5 +1,5 @@
-import { writeFileSync } from 'node:fs';
-import { extname, resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, extname, resolve } from 'node:path';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -70,7 +70,36 @@ app.post('/api/posts', async (c) => {
 
   const problems = validate(request);
   if (problems.length) return c.json({ problems }, 400);
+  return c.json({ id: startJob(request) });
+});
 
+/** Imagem de um post do histórico, para repostar. Só serve arquivos da pasta de uploads. */
+app.get('/api/history/:id/image', (c) => {
+  const image = readHistory().find((r) => r.id === c.req.param('id'))?.image;
+  if (!image || dirname(resolve(image)) !== paths.uploads || !existsSync(image)) return c.json({ error: 'sem imagem' }, 404);
+  const types: Record<string, string> = { '.png': 'image/png', '.webp': 'image/webp' };
+  return c.body(readFileSync(image), 200, { 'Content-Type': types[extname(image).toLowerCase()] ?? 'image/jpeg' });
+});
+
+/** Publica de novo só nas redes que falharam num post do histórico, com o mesmo texto e imagem. */
+app.post('/api/history/:id/retry', (c) => {
+  const record = readHistory().find((r) => r.id === c.req.param('id'));
+  if (!record) return c.json({ problems: ['Post não encontrado no histórico.'] }, 404);
+  const failed = record.results.filter((r) => r.status === 'error').map((r) => r.network);
+  if (!failed.length) return c.json({ problems: ['Nenhuma rede falhou nesse post.'] }, 400);
+  const request: PostRequest = {
+    text: record.text,
+    networks: failed,
+    overrides: record.overrides,
+    image: record.image && existsSync(record.image) ? record.image : undefined,
+    dryRun: record.dryRun,
+  };
+  const problems = validate(request);
+  if (problems.length) return c.json({ problems }, 400);
+  return c.json({ id: startJob(request), networks: failed });
+});
+
+function startJob(request: PostRequest): string {
   const jobId = `job-${++counter}`;
   const job: Job = { events: [], listeners: new Set(), done: false };
   jobs.set(jobId, job);
@@ -89,8 +118,8 @@ app.post('/api/posts', async (c) => {
     }),
   );
 
-  return c.json({ id: jobId });
-});
+  return jobId;
+}
 
 app.get('/api/posts/:id/events', (c) => {
   const job = jobs.get(c.req.param('id'));

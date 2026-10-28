@@ -118,10 +118,14 @@ Abra **http://localhost:4545**.
 1. Marque as redes. O contador ao lado de cada uma mostra quantos caracteres faltam.
 2. Escreva o texto. Para anexar uma imagem, use **🖼️ Adicionar imagem** ou cole com `Ctrl+V`.
 3. Se quiser um texto diferente numa rede, ative **Texto diferente por rede**.
-4. Clique em **Publicar**, ou marque **Simular** para testar sem publicar.
+4. Clique em **Publicar** (ou `Ctrl+Enter` no texto), ou marque **Simular** para testar sem publicar. Se o texto
+   for igual a um já publicado, o Postaí pergunta antes de publicar de novo.
 5. Acompanhe o envio. Cada rede aparece com ✅ e o link do post, ou ❌ com o erro e o caminho do print da tela.
 6. O **Histórico** guarda os últimos envios com os links. O campo de texto é limpo assim que o envio começa,
-   para um segundo clique não publicar duplicado.
+   para um segundo clique não publicar duplicado. Em cada envio:
+   - **↺ Repostar** traz o texto, as redes, o texto por rede e a imagem de volta para o editor.
+   - **⟳ Tentar de novo nas que falharam** publica de novo só nas redes com ❌. Confira antes se o post não saiu
+     mesmo (às vezes ele sai e só o link falha).
 
 ### Criar post com IA
 
@@ -130,8 +134,10 @@ O bloco **Criar post**, à direita, transforma uma ideia curta num post pronto:
 - **X** e **Threads:** texto curto, dentro do limite de caracteres, com hashtags.
 - **LinkedIn:** expande como um artigo curto de blog, com abertura forte, parágrafos curtos, palavras-chave e hashtags.
 
-Escolha a rede e o modelo, escreva a ideia e clique em **Gerar** (ou `Ctrl+Enter`). Revise o texto, depois
-**Copiar** ou **Usar no post**, que leva o texto para o campo principal. A IA nunca publica sozinha.
+Escolha a rede (ou **Todas**) e o modelo, escreva a ideia e clique em **Gerar** (ou `Ctrl+Enter`). Revise o
+texto, depois **Copiar** ou **Usar no post**. Com **Todas**, ele gera as três versões e liga o **Texto por rede**
+com cada uma no lugar certo; o texto principal fica com a versão do Threads (vale para Facebook e Instagram).
+A IA nunca publica sozinha.
 
 Configure em `config.json`:
 

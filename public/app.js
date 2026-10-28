@@ -11,7 +11,7 @@ const el = (tag, { dataset, ...props } = {}, children = []) => {
 const STORAGE_KEY = 'postai:networks';
 const ICON = { ok: '✅', error: '❌', 'dry-run': '🧪' };
 
-const state = { networks: [], selected: new Set(), image: null, busy: false };
+const state = { networks: [], selected: new Set(), image: null, busy: false, history: [] };
 const labelOf = (id) => state.networks.find((n) => n.id === id)?.label ?? id;
 
 function remembered(defaults) {
@@ -129,9 +129,25 @@ function showResult(result) {
   }
 }
 
+/** Último post publicado de verdade (não simulação) com o mesmo texto, em alguma das redes escolhidas. */
+function sameAsLast() {
+  const norm = (t) => t.replace(/\r\n/g, '\n').trim();
+  const texts = new Set([...state.selected].map(textFor).map(norm));
+  return state.history.find(
+    (r) => !r.dryRun && r.results.some((x) => x.status === 'ok' && state.selected.has(x.network) && texts.has(norm(r.overrides?.[x.network] ?? r.text))),
+  );
+}
+
 async function submit(event) {
   event.preventDefault();
-  if (state.busy) return;
+  if (state.busy || $('#submit').disabled) return;
+  const dryRun = $('#dryRun').checked;
+  const twin = !dryRun && sameAsLast();
+  if (twin) {
+    const when = new Date(twin.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    if (!confirm(`Esse texto já foi publicado em ${when}. Publicar de novo?`)) return;
+  }
+
   const form = new FormData();
   form.append('text', $('#text').value);
   for (const id of state.selected) form.append('networks', id);
@@ -141,7 +157,7 @@ async function submit(event) {
     for (const id of state.selected) overrides[id] = textFor(id);
     form.append('overrides', JSON.stringify(overrides));
   }
-  form.append('dryRun', String($('#dryRun').checked));
+  form.append('dryRun', String(dryRun));
 
   state.busy = true;
   update();
@@ -155,17 +171,23 @@ async function submit(event) {
   }
 
   // Aceito: limpa já, para um segundo clique não publicar de novo. O texto fica no histórico.
-  if (!$('#dryRun').checked) {
+  if (!dryRun) {
     $('#text').value = '';
     setImage(null);
     renderOverrides();
   }
+  track(data.id, [...state.selected]);
+}
 
+/** Mostra o andamento de um envio (novo ou "tentar de novo") até terminar. */
+function track(jobId, ids) {
+  state.busy = true;
+  update();
   $('#progress').hidden = false;
-  $('#results').replaceChildren(...[...state.selected].map(resultRow));
+  $('#results').replaceChildren(...ids.map(resultRow));
   $('#progress').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  const events = new EventSource(`/api/posts/${data.id}/events`);
+  const events = new EventSource(`/api/posts/${jobId}/events`);
   events.onmessage = (message) => {
     const ev = JSON.parse(message.data);
     const detail = ev.network && document.querySelector(`[data-result="${ev.network}"] .detail`);
@@ -186,8 +208,48 @@ async function submit(event) {
   };
 }
 
+/** Traz um post do histórico de volta para o editor (texto, redes, texto por rede e imagem). */
+async function repost(record) {
+  const used = record.results.map((r) => r.network).filter((id) => state.networks.some((n) => n.id === id));
+  state.selected = new Set(used);
+  remember();
+  renderNetworks();
+  $('#text').value = record.text;
+  $('#customize').checked = !!record.overrides && Object.keys(record.overrides).length > 0;
+  renderOverrides();
+  for (const [id, text] of Object.entries(record.overrides ?? {})) {
+    const field = document.querySelector(`[data-override="${id}"]`);
+    if (field) field.value = text;
+  }
+  setImage(null);
+  if (record.image) {
+    const response = await fetch(`/api/history/${record.id}/image`);
+    if (response.ok) {
+      const blob = await response.blob();
+      setImage(new File([blob], record.image.split('/').pop(), { type: blob.type }));
+    }
+  }
+  update();
+  $('#composer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#text').focus();
+}
+
+async function retry(record) {
+  const failed = record.results.filter((r) => r.status === 'error').map((r) => labelOf(r.network));
+  const question = `Publicar de novo só em: ${failed.join(', ')}?\n\nAntes, confira na rede se o post não saiu mesmo (às vezes ele sai e só o link falha).`;
+  if (state.busy || !confirm(question)) return;
+  const response = await fetch(`/api/history/${record.id}/retry`, { method: 'POST' });
+  const data = await response.json();
+  if (!response.ok) {
+    $('#warnings').replaceChildren(...data.problems.map((p) => el('li', { className: 'error', textContent: p })));
+    return;
+  }
+  track(data.id, data.networks);
+}
+
 async function loadHistory() {
   const history = await fetch('/api/history').then((r) => r.json());
+  state.history = history;
   $('#history').replaceChildren(
     ...(history.length
       ? history.map((record) =>
@@ -206,10 +268,24 @@ async function loadHistory() {
                   : el('span', { textContent: `${ICON[r.status]} ${labelOf(r.network)}`, title: r.error ?? r.note ?? '' }),
               ),
             ),
+            historyActions(record),
           ]),
         )
       : [el('li', { className: 'muted', textContent: 'Nada publicado ainda.' })]),
   );
+}
+
+function historyActions(record) {
+  const repostButton = el('button', { type: 'button', className: 'link', textContent: '↺ Repostar' });
+  repostButton.addEventListener('click', () => repost(record));
+  const buttons = [repostButton];
+  const failed = record.results.filter((r) => r.status === 'error').length;
+  if (failed) {
+    const retryButton = el('button', { type: 'button', className: 'link', textContent: `⟳ Tentar de novo nas que falharam (${failed})` });
+    retryButton.addEventListener('click', () => retry(record));
+    buttons.push(retryButton);
+  }
+  return el('div', { className: 'history-actions' }, buttons);
 }
 
 function setupImageInputs() {
@@ -234,23 +310,56 @@ function setupImageInputs() {
 }
 
 const PROVIDER_LABEL = { gemini: 'Gemini', claude: 'Claude' };
-const writer = { network: 'x', busy: false };
+const HINTS = {
+  all: 'Gera X, Threads e LinkedIn de uma vez e preenche o "Texto por rede".',
+  x: 'Curto, direto, com hashtags, no limite do X.',
+  threads: 'Tom de conversa, com hashtags.',
+  linkedin: 'Expande como um artigo curto: contexto, palavras-chave e hashtags.',
+};
+const writer = { network: 'all', networks: [], busy: false };
 
-function draftCount() {
-  const limit = state.networks.find((n) => n.id === writer.network)?.limit ?? Infinity;
-  const length = $('#draft').value.length;
-  $('#draftCount').textContent = `${length}/${limit} caracteres`;
-  $('#draftCount').classList.toggle('count-over', length > limit);
+const limitOf = (id) => state.networks.find((n) => n.id === id)?.limit ?? Infinity;
+
+function draftCount(id) {
+  const area = document.querySelector(`[data-draft="${id}"]`);
+  const count = document.querySelector(`[data-draft-count="${id}"]`);
+  count.textContent = `${area.value.length}/${limitOf(id)}`;
+  count.classList.toggle('count-over', area.value.length > limitOf(id));
+}
+
+function draftBlock(id, text) {
+  const area = el('textarea', { id: `draft-${id}`, rows: id === 'linkedin' ? 12 : 5, value: text, dataset: { draft: id } });
+  area.addEventListener('input', () => draftCount(id));
+  const copy = el('button', { type: 'button', className: 'ghost small-btn', textContent: 'Copiar' });
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(area.value);
+    copy.textContent = 'Copiado ✓';
+    setTimeout(() => (copy.textContent = 'Copiar'), 1500);
+  });
+  return el('div', { className: 'draft' }, [
+    el('div', { className: 'draft-head' }, [
+      el('label', { htmlFor: area.id, textContent: labelOf(id) }),
+      el('span', { className: 'muted small', dataset: { draftCount: id } }),
+      copy,
+    ]),
+    area,
+  ]);
 }
 
 function renderWriterNetworks() {
-  const hints = {
-    x: 'Curto, direto, com hashtags, no limite do X.',
-    threads: 'Tom de conversa, com hashtags.',
-    linkedin: 'Expande como um artigo curto: contexto, palavras-chave e hashtags.',
-  };
-  $('#writerHint').textContent = hints[writer.network];
+  $('#writerHint').textContent = HINTS[writer.network];
   for (const button of $('#writerNetworks').children) button.setAttribute('aria-checked', String(button.dataset.net === writer.network));
+}
+
+async function writeOne(idea, network, provider) {
+  const response = await fetch('/api/write', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idea, network, provider }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(`${labelOf(network)}: ${data.error}`);
+  return [network, data.text];
 }
 
 async function generate() {
@@ -261,36 +370,58 @@ async function generate() {
   button.disabled = true;
   button.textContent = 'Gerando…';
   $('#writerError').hidden = true;
-  try {
-    const response = await fetch('/api/write', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idea, network: writer.network, provider: $('#writerProvider').value }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error);
-    $('#draft').value = data.text;
-    $('#draftBox').hidden = false;
-    draftCount();
-  } catch (error) {
-    $('#writerError').textContent = error.message || 'Não consegui gerar o texto.';
+  const ids = writer.network === 'all' ? writer.networks : [writer.network];
+  const provider = $('#writerProvider').value;
+  const results = await Promise.allSettled(ids.map((id) => writeOne(idea, id, provider)));
+  const drafts = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  const errors = results.filter((r) => r.status === 'rejected').map((r) => r.reason.message || 'Não consegui gerar o texto.');
+  if (errors.length) {
+    $('#writerError').textContent = errors.join(' · ');
     $('#writerError').hidden = false;
-  } finally {
-    writer.busy = false;
-    button.disabled = false;
-    button.textContent = 'Gerar';
   }
+  if (drafts.length) {
+    $('#drafts').replaceChildren(...drafts.map(([id, text]) => draftBlock(id, text)));
+    drafts.forEach(([id]) => draftCount(id));
+    $('#useDraft').textContent = drafts.length > 1 ? 'Usar no post (texto por rede)' : 'Usar no post';
+    $('#draftBox').hidden = false;
+  }
+  writer.busy = false;
+  button.disabled = false;
+  button.textContent = 'Gerar';
+}
+
+/** Leva os textos gerados para o editor. Vários: liga "Texto por rede" e preenche cada rede. */
+function useDrafts() {
+  const drafts = [...document.querySelectorAll('[data-draft]')].map((a) => [a.dataset.draft, a.value]);
+  if (drafts.length === 1) {
+    $('#text').value = drafts[0][1];
+  } else {
+    for (const [id] of drafts) state.selected.add(id);
+    remember();
+    renderNetworks();
+    // O texto principal vale para as redes sem texto próprio (Facebook, card do Instagram): usa o do Threads.
+    $('#text').value = (drafts.find(([id]) => id === 'threads') ?? drafts[0])[1];
+    $('#customize').checked = true;
+    renderOverrides();
+    for (const [id, text] of drafts) {
+      const field = document.querySelector(`[data-override="${id}"]`);
+      if (field) field.value = text;
+    }
+  }
+  update();
+  $('#composer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#text').focus();
 }
 
 async function setupWriter() {
   const data = await fetch('/api/writer').then((r) => r.json());
+  writer.networks = data.networks;
   $('#writerNetworks').replaceChildren(
-    ...data.networks.map((id) => {
-      const button = el('button', { type: 'button', textContent: labelOf(id), role: 'radio', dataset: { net: id } });
+    ...['all', ...data.networks].map((id) => {
+      const button = el('button', { type: 'button', textContent: id === 'all' ? 'Todas' : labelOf(id), role: 'radio', dataset: { net: id } });
       button.addEventListener('click', () => {
         writer.network = id;
         renderWriterNetworks();
-        if (!$('#draftBox').hidden) draftCount();
       });
       return button;
     }),
@@ -303,18 +434,7 @@ async function setupWriter() {
   $('#idea').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate();
   });
-  $('#draft').addEventListener('input', draftCount);
-  $('#copyDraft').addEventListener('click', async () => {
-    await navigator.clipboard.writeText($('#draft').value);
-    $('#copyDraft').textContent = 'Copiado ✓';
-    setTimeout(() => ($('#copyDraft').textContent = 'Copiar'), 1500);
-  });
-  $('#useDraft').addEventListener('click', () => {
-    $('#text').value = $('#draft').value;
-    renderOverrides();
-    update();
-    $('#text').focus();
-  });
+  $('#useDraft').addEventListener('click', useDrafts);
 }
 
 async function init() {
@@ -329,6 +449,12 @@ async function init() {
   $('#dryRun').addEventListener('change', update);
   $('#customize').addEventListener('change', () => { renderOverrides(); update(); });
   $('#composer').addEventListener('submit', submit);
+  $('#composer').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.tagName === 'TEXTAREA') {
+      e.preventDefault();
+      $('#composer').requestSubmit();
+    }
+  });
 
   update();
   loadHistory();
