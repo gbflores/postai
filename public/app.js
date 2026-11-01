@@ -383,7 +383,10 @@ function setupImageInputs() {
   });
   $('#cancelImageEdit').addEventListener('click', () => $('#imageEditor').close());
   $('#closeImageEditor').addEventListener('click', () => $('#imageEditor').close());
-  $('#imageEditor').addEventListener('close', clearImageEditor);
+  // O evento "close" chega depois: se outra imagem já abriu o editor, não apaga a imagem nova.
+  $('#imageEditor').addEventListener('close', () => {
+    if (!$('#imageEditor').open) clearImageEditor();
+  });
   $('#applyImageEdit').addEventListener('click', applyImageEdit);
   for (const button of document.querySelectorAll('[data-image-filter]')) button.addEventListener('click', () => {
     state.imageFilter = button.dataset.imageFilter;
