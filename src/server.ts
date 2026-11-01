@@ -22,6 +22,26 @@ let counter = 0;
 
 const app = new Hono();
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+const localUrl = (value: string) => {
+  try {
+    return LOCAL_HOSTS.has(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * A API publica de verdade e não tem login. Ouvir só em 127.0.0.1 não basta: uma página aberta no navegador
+ * consegue chamar localhost. Só aceita pedidos feitos pela própria interface ou pelo terminal.
+ */
+app.use('/api/*', async (c, next) => {
+  const host = c.req.header('host') ?? '';
+  const origin = c.req.header('origin');
+  if (!localUrl(`http://${host}`) || (origin && !localUrl(origin))) return c.json({ error: 'pedido recusado: só a interface local pode usar esta API' }, 403);
+  await next();
+});
+
 // Cropper.js bundled ESM asset, served locally so the editor works without a CDN.
 app.get('/vendor/cropper.js', (c) =>
   c.body(readFileSync(resolve(ROOT, 'node_modules/cropperjs/dist/cropper.esm.min.js')), 200, {
@@ -141,10 +161,11 @@ app.get('/api/posts/:id/events', (c) => {
     if (job.done) return;
     await new Promise<void>((done) => {
       const listener = (event: PublishEvent) => {
-        void send(event);
+        const written = send(event);
         if (event.type === 'finish') {
           job.listeners.delete(listener);
-          done();
+          // Só fecha depois de escrever: senão o aviso de fim se perde.
+          written.finally(done);
         }
       };
       job.listeners.add(listener);
