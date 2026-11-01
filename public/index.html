@@ -82,6 +82,31 @@
   </section>
   </div>
 
+  <dialog id="imageEditor" class="image-editor" aria-labelledby="imageEditorTitle">
+    <div class="image-editor-head">
+      <div>
+        <h2 id="imageEditorTitle">Ajustar imagem</h2>
+        <p class="muted small">Arraste para reposicionar e use os cantos para escolher o corte.</p>
+      </div>
+      <button type="button" id="closeImageEditor" class="remove" aria-label="Fechar editor">×</button>
+    </div>
+    <div id="cropperContainer" class="cropper-container"></div>
+    <fieldset class="filter-options">
+      <legend>Filtro</legend>
+      <div>
+        <button type="button" data-image-filter="none" aria-pressed="true">Original</button>
+        <button type="button" data-image-filter="grayscale(100%)" aria-pressed="false">Preto e branco</button>
+        <button type="button" data-image-filter="sepia(45%)" aria-pressed="false">Sépia</button>
+        <button type="button" data-image-filter="contrast(1.15) saturate(1.2)" aria-pressed="false">Vivo</button>
+      </div>
+    </fieldset>
+    <p id="imageEditorError" class="writer-error" hidden></p>
+    <div class="image-editor-actions">
+      <button type="button" id="cancelImageEdit" class="ghost">Cancelar</button>
+      <button type="button" id="applyImageEdit" class="primary">Usar imagem</button>
+    </div>
+  </dialog>
+
   <section id="progress" class="card" hidden>
     <h2>Envio</h2>
     <ul id="results" class="results"></ul>

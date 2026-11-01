@@ -116,7 +116,7 @@ npm start
 Abra **http://localhost:4545**.
 
 1. Marque as redes. O contador ao lado de cada uma mostra quantos caracteres faltam.
-2. Escreva o texto. Para anexar uma imagem, use **🖼️ Adicionar imagem** ou cole com `Ctrl+V`.
+2. Escreva o texto. Ao escolher, colar ou arrastar uma imagem, ajuste o corte e escolha um filtro antes de usar a imagem.
 3. Se quiser um texto diferente numa rede, ative **Texto diferente por rede**.
 4. Clique em **Publicar** (ou `Ctrl+Enter` no texto), ou marque **Simular** para testar sem publicar. Se o texto
    for igual a um já publicado, o Postaí pergunta antes de publicar de novo.

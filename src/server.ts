@@ -22,6 +22,14 @@ let counter = 0;
 
 const app = new Hono();
 
+// Cropper.js bundled ESM asset, served locally so the editor works without a CDN.
+app.get('/vendor/cropper.js', (c) =>
+  c.body(readFileSync(resolve(ROOT, 'node_modules/cropperjs/dist/cropper.esm.min.js')), 200, {
+    'Content-Type': 'text/javascript; charset=utf-8',
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  }),
+);
+
 app.get('/api/networks', (c) =>
   c.json({
     defaults: config.defaultNetworks,

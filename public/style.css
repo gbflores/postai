@@ -52,6 +52,25 @@ h2 { margin: 0 0 12px; font-size: 16px; }
 .preview img { display: block; max-height: 180px; max-width: 100%; border-radius: 12px; border: 1px solid var(--border); }
 .remove { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer;
           background: rgba(0,0,0,.65); color: #fff; font-size: 18px; line-height: 1; }
+.image-editor { width: min(820px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); overflow: auto;
+                border: 1px solid var(--border); border-radius: 18px; padding: 20px; background: var(--surface); color: var(--text); }
+.image-editor::backdrop { background: rgba(0,0,0,.72); }
+.image-editor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.image-editor-head h2 { margin-bottom: 2px; }
+.image-editor-head p { margin: 0 0 14px; }
+.image-editor-head .remove { position: static; flex: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.cropper-container { width: 100%; height: min(58vh, 520px); min-height: 260px; overflow: hidden; border-radius: 12px; background: #15171a; }
+.cropper-container cropper-canvas { width: 100%; height: 100%; --theme-color: var(--accent); }
+.filter-options { border: 0; padding: 0; margin: 16px 0 0; }
+.filter-options legend { margin-bottom: 8px; font-weight: 600; }
+.filter-options > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-options button { border: 1px solid var(--border); border-radius: 999px; padding: 7px 13px; background: var(--surface-2); color: var(--text); font: inherit; cursor: pointer; }
+.filter-options button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.image-editor-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+@media (max-width: 600px) {
+  .image-editor { padding: 14px; }
+  .cropper-container { height: 52vh; min-height: 220px; }
+}
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 10px;
            border-top: 1px solid var(--border); }
 .tool { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; cursor: pointer;

@@ -1,3 +1,5 @@
+import Cropper from '/vendor/cropper.js';
+
 const $ = (s) => document.querySelector(s);
 
 /** Cria um elemento. `dataset` e `className` são tratados à parte (dataset não pode ser atribuído direto). */
@@ -11,7 +13,7 @@ const el = (tag, { dataset, ...props } = {}, children = []) => {
 const STORAGE_KEY = 'postai:networks';
 const ICON = { ok: '✅', error: '❌', 'dry-run': '🧪' };
 
-const state = { networks: [], selected: new Set(), image: null, busy: false, history: [] };
+const state = { networks: [], selected: new Set(), image: null, imagePreview: null, cropper: null, sourceImageUrl: null, pendingImage: null, imageFilter: 'none', busy: false, history: [] };
 const labelOf = (id) => state.networks.find((n) => n.id === id)?.label ?? id;
 
 function remembered(defaults) {
@@ -100,12 +102,70 @@ function update() {
 }
 
 function setImage(file) {
+  if (state.imagePreview) URL.revokeObjectURL(state.imagePreview);
   state.image = file;
   const preview = $('#preview');
   preview.hidden = !file;
-  if (file) preview.querySelector('img').src = URL.createObjectURL(file);
-  else $('#image').value = '';
+  if (file) {
+    state.imagePreview = URL.createObjectURL(file);
+    preview.querySelector('img').src = state.imagePreview;
+  } else {
+    state.imagePreview = null;
+    preview.querySelector('img').removeAttribute('src');
+  }
+  $('#image').value = '';
   update();
+}
+
+function clearImageEditor() {
+  state.cropper?.destroy();
+  state.cropper = null;
+  $('#cropperContainer').replaceChildren();
+  if (state.sourceImageUrl) URL.revokeObjectURL(state.sourceImageUrl);
+  state.sourceImageUrl = null;
+  state.pendingImage = null;
+  state.imageFilter = 'none';
+  $('#imageEditorError').hidden = true;
+  for (const button of document.querySelectorAll('[data-image-filter]')) button.setAttribute('aria-pressed', String(button.dataset.imageFilter === 'none'));
+}
+
+async function openImageEditor(file) {
+  if (!file?.type.startsWith('image/')) return;
+  clearImageEditor();
+  state.pendingImage = file;
+  const image = new Image();
+  state.sourceImageUrl = URL.createObjectURL(file);
+  image.src = state.sourceImageUrl;
+  image.alt = file.name || 'Imagem enviada';
+  $('#imageEditor').showModal();
+  try {
+    await image.decode();
+    state.cropper = new Cropper(image, { container: '#cropperContainer' });
+  } catch {
+    $('#imageEditorError').textContent = 'Não consegui abrir essa imagem. Tente JPEG, PNG ou WebP.';
+    $('#imageEditorError').hidden = false;
+  }
+}
+
+async function applyImageEdit() {
+  const selection = state.cropper?.getCropperSelection();
+  if (!selection) return;
+  const button = $('#applyImageEdit');
+  button.disabled = true;
+  try {
+    const canvas = await selection.$toCanvas({ beforeDraw: (context) => { context.filter = state.imageFilter; } });
+    const mime = ['image/png', 'image/webp'].includes(state.pendingImage?.type) ? state.pendingImage.type : 'image/jpeg';
+    const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error('falha ao processar a imagem')), mime, 0.92));
+    const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+    const base = (state.pendingImage?.name || 'imagem').replace(/\.[^.]+$/, '');
+    setImage(new File([blob], `${base}-editada.${extension}`, { type: blob.type }));
+    $('#imageEditor').close();
+  } catch (error) {
+    $('#imageEditorError').textContent = `Não consegui processar a imagem: ${error.message}`;
+    $('#imageEditorError').hidden = false;
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function resultRow(id) {
@@ -226,7 +286,7 @@ async function repost(record) {
     const response = await fetch(`/api/history/${record.id}/image`);
     if (response.ok) {
       const blob = await response.blob();
-      setImage(new File([blob], record.image.split('/').pop(), { type: blob.type }));
+      await openImageEditor(new File([blob], record.image.split('/').pop(), { type: blob.type }));
     }
   }
   update();
@@ -289,11 +349,16 @@ function historyActions(record) {
 }
 
 function setupImageInputs() {
-  $('#image').addEventListener('change', (e) => setImage(e.target.files[0] ?? null));
+  $('#image').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) openImageEditor(file);
+    e.target.value = '';
+  });
   $('#removeImage').addEventListener('click', () => setImage(null));
   document.addEventListener('paste', (e) => {
+    if ($('#imageEditor').open) return;
     const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'));
-    if (file) setImage(file);
+    if (file) openImageEditor(file);
   });
   const zone = $('#dropzone');
   zone.addEventListener('dragover', (e) => {
@@ -305,7 +370,16 @@ function setupImageInputs() {
     e.preventDefault();
     zone.classList.remove('dragging');
     const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
-    if (file) setImage(file);
+    if (file) openImageEditor(file);
+  });
+  $('#cancelImageEdit').addEventListener('click', () => $('#imageEditor').close());
+  $('#closeImageEditor').addEventListener('click', () => $('#imageEditor').close());
+  $('#imageEditor').addEventListener('close', clearImageEditor);
+  $('#applyImageEdit').addEventListener('click', applyImageEdit);
+  for (const button of document.querySelectorAll('[data-image-filter]')) button.addEventListener('click', () => {
+    state.imageFilter = button.dataset.imageFilter;
+    state.cropper?.getCropperImage()?.style.setProperty('filter', state.imageFilter);
+    for (const other of document.querySelectorAll('[data-image-filter]')) other.setAttribute('aria-pressed', String(other === button));
   });
 }
 
