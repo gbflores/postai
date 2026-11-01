@@ -141,6 +141,13 @@ async function openImageEditor(file) {
   try {
     await image.decode();
     state.cropper = new Cropper(image, { container: '#cropperContainer' });
+    state.sourceWidth = image.naturalWidth;
+    // O corte começa na imagem inteira: quem só clica em "Usar imagem" não perde nada.
+    const cropperImage = state.cropper.getCropperImage();
+    await cropperImage.$ready();
+    const area = state.cropper.getCropperCanvas().getBoundingClientRect();
+    const box = cropperImage.getBoundingClientRect();
+    state.cropper.getCropperSelection().$change(box.left - area.left, box.top - area.top, box.width, box.height);
   } catch {
     $('#imageEditorError').textContent = 'Não consegui abrir essa imagem. Tente JPEG, PNG ou WebP.';
     $('#imageEditorError').hidden = false;
@@ -153,7 +160,9 @@ async function applyImageEdit() {
   const button = $('#applyImageEdit');
   button.disabled = true;
   try {
-    const canvas = await selection.$toCanvas({ beforeDraw: (context) => { context.filter = state.imageFilter; } });
+    // A seleção é medida na tela: converte para os pixels da foto, para não reduzir a resolução.
+    const scale = state.sourceWidth / state.cropper.getCropperImage().getBoundingClientRect().width;
+    const canvas = await selection.$toCanvas({ width: Math.round(selection.width * scale), height: Math.round(selection.height * scale), beforeDraw: (context) => { context.filter = state.imageFilter; } });
     const mime = ['image/png', 'image/webp'].includes(state.pendingImage?.type) ? state.pendingImage.type : 'image/jpeg';
     const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error('falha ao processar a imagem')), mime, 0.92));
     const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
